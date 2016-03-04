@@ -1,10 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#define QTDCIDADE 10
-#define QTDCROMOSSOMO 20
+#define QTDCIDADE 100
+#define QTDCROMOSSOMO 100
 #define QTDPOP 10
-#define QTDGERACAO 10
+#define QTDGERACAO 100
 
 typedef struct{
 	int sequencia[QTDCIDADE+1]; /* Sequencia de cidades */
@@ -20,9 +20,7 @@ void popularMatriz(int cidades[QTDCIDADE][QTDCIDADE]){
 	for(i=0;i<QTDCIDADE;i++){
 		for(j=0;j<QTDCIDADE;j++){
 			cidades[i][j] = (rand()%10)+1;
-			printf(" {%d} ",cidades[i][j]);
 		}
-		printf("\n");
 	}
 }
 
@@ -71,39 +69,82 @@ void calcularMenorESegundoMenor(Populacao *p){
 	}
 }
 
+void popularPopulacao(Populacao p[], int cidades[QTDCIDADE][QTDCIDADE]){
+	int z, i, j, k, aux, cidadeAux;
+	for(z=0;z<QTDPOP;z++){
+		for(i=0;i<QTDCROMOSSOMO;i++){
+			for(j=0;j<QTDCIDADE+1;j++){// Inicializa o cromossomo com 0, valor que o cromossomo nao devera possuir ao final 
+				p[z].pop[i].sequencia[j]=0;		
+			}
+			for(k=1;k<QTDCIDADE;k++){
+				aux = 1;
+				while(aux == 1){
+					aux = 0;
+					cidadeAux = (rand()%QTDCIDADE-1)+1;// sorteia uma cidade que nao seja a 0 
+					for(j=1;j<k;j++){
+						if((p[z].pop[i].sequencia[j] == cidadeAux)){ // Verifica se a cidade ja esta no cromossomo 
+							aux=1;
+						}
+					}
+					if(cidades[p[z].pop[i].sequencia[k-1]][cidadeAux]==0 || cidadeAux == 0){
+						aux = 1;
+					}
+
+					if(aux == 0){// Se a cidadeAux nao for repetida ela é adicionana no croossomo e a sua distancia é somada tambem 
+					p[z].pop[i].sequencia[k]=cidadeAux;
+					}
+				}
+			}
+			calcularDistancia(&p[z].pop[i],cidades);
+		}
+		calcularMenorESegundoMenor(&p[z]);
+	}
+}
+
 int verificarSeExiste(Cromossomo *aux, int cidades[QTDCIDADE][QTDCIDADE]){
-	int a, certo;
+	int a, i, certo;
 	certo = 1;
 	for (a=1;a<QTDCIDADE+1;a++){
 		if(cidades[(*aux).sequencia[a-1]][(*aux).sequencia[a]] == 0){
 			certo = 0;
 		}
-		
+		if(certo == 1){
+			for(i=1; i < QTDCIDADE+1; i++){
+				if((*aux).sequencia[a] == (*aux).sequencia[i] && (a != i)){
+					certo = 0;
+				}
+			}
+		}
 	}
 	return certo;
 }
 
 int crossover(Populacao *p, int cidades[QTDCIDADE][QTDCIDADE]){
-	int i, j, cont, existe;
+	int i, j, a, cont, existe;
 	Cromossomo aux1, aux2;
 	cont = 2;
-	for(i=1;i<QTDCIDADE;i++){
-		for(j=0;j<QTDCIDADE+1;j++){
-			if(j<i){
-				aux1.sequencia[j] = (*p).pop[0].sequencia[j];
-				aux2.sequencia[j] = (*p).pop[1].sequencia[j];
-			}else{
-				aux1.sequencia[j] = (*p).pop[1].sequencia[j];
-				aux2.sequencia[j] = (*p).pop[0].sequencia[j];
+	for(i=0;i<QTDCROMOSSOMO;i++){
+		for(j=1;j<QTDCIDADE+1;j++){
+			for (a=1; a < QTDCIDADE+1; a++){
+				if(j<a){
+					aux1.sequencia[a] = (*p).pop[0].sequencia[a];
+					aux2.sequencia[a] = (*p).pop[1].sequencia[a];
+				}else{
+					aux1.sequencia[a] = (*p).pop[1].sequencia[a];
+					aux2.sequencia[a] = (*p).pop[0].sequencia[a];
+				}
 			}
 		}
+		aux1.sequencia[0] = 0;
+		aux1.sequencia[QTDCIDADE+1] = 0;
+		aux2.sequencia[0] = 0;
+		aux2.sequencia[QTDCIDADE+1] = 0;
 		existe = verificarSeExiste(&aux1, cidades);
 		if (existe == 1 && cont < (QTDCROMOSSOMO*0.8)){
 			(*p).pop[cont] = aux1;
 
 			(*p).pop[cont+1] = aux2;
 			cont += 2;
-			printf("ENCONTROU CROSSOVER \n");
 		}
 	}
 	return cont;
@@ -186,72 +227,31 @@ int main(){
 	
 	popularMatriz(cidades);
 
-	int cidadeAux, k;
-	// Função feita para se criar possivei caminhos entre para o caixero viajante
 	Populacao populacao[QTDPOP]; // Estrutura para se armazenar os possiveis caminhos, cromossomos e população 
-	for(z=0;z<QTDPOP;z++){
-		for(i=0;i<QTDCROMOSSOMO;i++){
-			for(j=0;j<QTDCIDADE+1;j++){// Inicializa o cromossomo com 0, valor que o cromossomo nao devera possuir ao final 
-				populacao[z].pop[i].sequencia[j]=0;		
-			}
-			for(k=1;k<QTDCIDADE;k++){
-				aux = 1;
-				while(aux == 1){
-					aux = 0;
-					cidadeAux = (rand()%QTDCIDADE-1)+1;// sorteia uma cidade que nao seja a 0 
-					for(j=1;j<k;j++){
-						if((populacao[z].pop[i].sequencia[j] == cidadeAux)){ // Verifica se a cidade ja esta no cromossomo 
-							aux=1;
-						}
-					}
-					if(cidades[populacao[z].pop[i].sequencia[k-1]][cidadeAux]==0){
-						aux = 1;
-					}
+	popularPopulacao( populacao, cidades);
 
-					if(aux == 0){// Se a cidadeAux nao for repetida ela é adicionana no croossomo e a sua distancia é somada tambem 
-					populacao[z].pop[i].sequencia[k]=cidadeAux;
-					}
-				}
+
+	for(j = 0; j< QTDGERACAO; j++){
+		for (z=0;z<QTDPOP;z++){
+			
+			aux = crossover(&populacao[z], cidades);
+			mutacao(&populacao[z], cidades, aux);
+			//printf("Depois, aux = %d\n", aux);
+			
+			for(i=0;i<QTDCROMOSSOMO;i++){
+				calcularDistancia(&populacao[z].pop[i],cidades);
 			}
-			calcularDistancia(&populacao[z].pop[i],cidades);
+
+			calcularMenorESegundoMenor(&populacao[z]);
 		}
-		calcularMenorESegundoMenor(&populacao[z]);
 	}
-
-	printf("POPULACAO FEITA \n");
-
-	for (z=0;z<QTDPOP;z++){
-		printf("Antes\n");
-		for(i=0;i<QTDCROMOSSOMO;i++){
-			printf("Cromossomo %d, Distancia %d \n", i, populacao[z].pop[i].distancia);
-			for(j=0;j < QTDCIDADE+1; j++){
-				printf(" {%d} ", populacao[z].pop[i].sequencia[j]);
-			}
-			printf("\n");
+	
+	for(i=0;i<QTDPOP;i++){
+		printf("Populacao %d, Distancia %d \n", i, populacao[i].pop[0].distancia);
+		for(j=0;j < QTDCIDADE+1; j++){
+			printf(" {%d} ", populacao[i].pop[0].sequencia[j]);
 		}
-		aux = crossover(&populacao[z], cidades);
-		printf("Depois, aux = %d\n", aux);
-		
-		mutacao(&populacao[z], cidades, aux);
-		
-		
-		for(i=0;i<QTDCROMOSSOMO;i++){
-			calcularDistancia(&populacao[z].pop[i],cidades);
-		}
-
-		calcularMenorESegundoMenor(&populacao[z]);
-		
-		for(i=0;i<QTDCROMOSSOMO;i++){
-			printf("Cromossomo %d, Distancia %d \n", i, populacao[z].pop[i].distancia);
-			for(j=0;j < QTDCIDADE+1; j++){
-				printf(" {%d} ", populacao[z].pop[i].sequencia[j]);
-			}
-			printf("\n");
-		}
-		
-		//for(i=0;i<QTDCROMOSSOMO;i++){
-		//	printf("Cromossomo %d, Distancia %d \n", i, populacao[z].pop[i].distancia);
-		//}
+		printf("\n");
 	}
 	return 0;
 }
